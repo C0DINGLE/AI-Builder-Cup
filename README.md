@@ -3,7 +3,7 @@
 > **A Closed-Loop AI Platform Connecting Households, Commercial Grocers, Mutual Aid Community Fridges, and Food Banks.**  
 > *Built for the AI Builder Cup — Transforming avoidable food waste into immediate nutrition, tax deductions, and verifiable carbon reductions.*
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Available%20on%20Cloud%20Run-1F7A4D?style=for-the-badge&logo=google-cloud)](https://food-rescue-fridge-to-plate-664725057512.asia-southeast1.run.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Available%20on%20Cloud%20Run-1F7A4D?style=for-the-badge&logo=google-cloud)](https://ais-pre-vfx3zicsk4rfgwfouj3cri-718565257475.asia-northeast1.run.app)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-C0DINGLE%2FAI--Builder--Cup-181717?style=for-the-badge&logo=github)](https://github.com/C0DINGLE/AI-Builder-Cup)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![Framework: React 18](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
