@@ -1,0 +1,185 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email == 'mujtabakhurram2@gmail.com' &&
+        request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() ||
+        (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // --- Entity Validators ---
+
+    function isValidUser(data) {
+      return data.email is string && data.email.size() <= 120 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.role in ['household', 'donor_store', 'foodbank_coordinator', 'dual_user', 'admin'] &&
+             (!('organization' in data) || (data.organization is string && data.organization.size() <= 150));
+    }
+
+    function isValidInventoryItem(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
+             data.storage in ['fridge', 'freezer', 'pantry'] &&
+             data.packageState in ['opened', 'sealed'] &&
+             data.actionStatus in ['use-today', 'use-soon', 'stable', 'donate-eligible'] &&
+             data.nextStepText is string && data.nextStepText.size() <= 200;
+    }
+
+    function isValidSurplusLot(data) {
+      return data.storeId is string && data.storeId.size() <= 128 &&
+             data.storeName is string && data.storeName.size() <= 150 &&
+             data.department is string && data.department.size() <= 100 &&
+             data.itemsSummary is string && data.itemsSummary.size() <= 500 &&
+             data.totalPounds is number && data.totalPounds > 0 &&
+             data.status in ['forecasted', 'offered', 'matched', 'dispatched', 'completed'];
+    }
+
+    function isValidClaimRequest(data) {
+      return data.lotId is string && data.lotId.size() <= 128 &&
+             data.foodBankId is string && data.foodBankId.size() <= 128 &&
+             data.foodBankName is string && data.foodBankName.size() <= 150 &&
+             data.requestedPounds is number && data.requestedPounds > 0 &&
+             data.status in ['pending', 'accepted', 'rejected', 'in_transit', 'delivered'];
+    }
+
+    function isValidCommunityImpact(data) {
+      return data.totalPoundsDiverted is number &&
+             data.totalMealsRescued is number &&
+             data.householdSavingsDollars is number;
+    }
+
+    // --- Collection Security Rules ---
+
+    // 1. Users
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isOwner(userId) &&
+                    isValidUser(incoming()) &&
+                    (incoming().role != 'admin' || isAdmin());
+      allow update: if isValidId(userId) && isValidUser(incoming()) && (
+        isAdmin() ||
+        (
+          isOwner(userId) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'organization', 'capabilities', 'allergies', 'dietaryPreferences']) &&
+          incoming().role == existing().role
+        )
+      );
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    // 2. Admins
+    match /admins/{adminId} {
+      allow read, write: if isValidId(adminId) && isAdmin();
+    }
+
+    // 3. Household Inventory Items
+    match /inventory/{itemId} {
+      allow get: if isValidId(itemId) && (
+        isAdmin() || (isSignedIn() && existing().userId == request.auth.uid)
+      );
+      allow list: if isSignedIn() && (
+        isAdmin() || resource.data.userId == request.auth.uid
+      );
+      allow create: if isValidId(itemId) && isSignedIn() &&
+                    incoming().userId == request.auth.uid &&
+                    isValidInventoryItem(incoming());
+      allow update: if isValidId(itemId) && isSignedIn() && isValidInventoryItem(incoming()) && (
+        isAdmin() ||
+        (
+          existing().userId == request.auth.uid &&
+          incoming().userId == existing().userId &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'quantity', 'storage', 'packageState', 'expirationDate', 'isEstimated', 'confidence', 'actionStatus', 'nextStepText'])
+        )
+      );
+      allow delete: if isValidId(itemId) && isSignedIn() && (
+        isAdmin() || existing().userId == request.auth.uid
+      );
+    }
+
+    // 4. Surplus Lots
+    match /surplus_lots/{lotId} {
+      allow get: if isValidId(lotId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(lotId) && isSignedIn() &&
+                    incoming().storeId == request.auth.uid &&
+                    isValidSurplusLot(incoming());
+      allow update: if isValidId(lotId) && isSignedIn() && isValidSurplusLot(incoming()) && (
+        isAdmin() ||
+        (
+          existing().storeId == request.auth.uid &&
+          incoming().storeId == existing().storeId &&
+          existing().status != 'completed' &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'itemsSummary', 'totalPounds', 'spoilageWindowHours', 'forecastConfidence', 'requiresColdStorage', 'requiresSealedPackaging'])
+        )
+      );
+      allow delete: if isValidId(lotId) && (isAdmin() || (isSignedIn() && existing().storeId == request.auth.uid));
+    }
+
+    // 5. Surplus Claim Requests
+    match /claim_requests/{requestId} {
+      allow get: if isValidId(requestId) && isSignedIn() && (
+        isAdmin() || existing().foodBankId == request.auth.uid || existing().storeId == request.auth.uid
+      );
+      allow list: if isSignedIn() && (
+        isAdmin() || resource.data.foodBankId == request.auth.uid || resource.data.storeId == request.auth.uid
+      );
+      allow create: if isValidId(requestId) && isSignedIn() &&
+                    incoming().foodBankId == request.auth.uid &&
+                    isValidClaimRequest(incoming());
+      allow update: if isValidId(requestId) && isSignedIn() && isValidClaimRequest(incoming()) && (
+        isAdmin() ||
+        // Store approves / rejects
+        (
+          existing().storeId == request.auth.uid &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'rejectionReason', 'driverEtaMinutes'])
+        ) ||
+        // Food Bank updates delivery progress
+        (
+          existing().foodBankId == request.auth.uid &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'driverNotes', 'proposedPickupTime'])
+        )
+      );
+      allow delete: if isValidId(requestId) && (isAdmin() || (isSignedIn() && existing().foodBankId == request.auth.uid));
+    }
+
+    // 6. Community Impact
+    match /community_impact/{metricId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn() && isValidCommunityImpact(incoming());
+      allow delete: if isAdmin();
+    }
+  }
+}

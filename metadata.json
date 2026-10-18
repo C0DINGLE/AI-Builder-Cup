@@ -1,0 +1,6 @@
+{
+  "name": "Food Rescue & Fridge to Plate",
+  "description": "AI-powered dual platform attacking food waste: Surplus Rescue for grocers/food banks and Fridge to Plate with USDA FoodKeeper intelligence for households.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

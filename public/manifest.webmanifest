@@ -1,0 +1,19 @@
+{
+  "name": "NourishLoop — Food Rescue & Fridge to Plate",
+  "short_name": "NourishLoop",
+  "description": "AI-powered dual platform attacking food waste: Surplus Rescue for grocers/food banks and Fridge to Plate with USDA FoodKeeper intelligence for households.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FBFBFD",
+  "theme_color": "#1F7A4D",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "food", "sustainability", "utilities"]
+}

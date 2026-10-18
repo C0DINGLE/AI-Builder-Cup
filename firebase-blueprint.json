@@ -1,0 +1,138 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile, role assignment, capabilities, and allergy profile.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["household", "donor_store", "foodbank_coordinator", "dual_user", "admin"] },
+        "organization": { "type": "string", "maxLength": 150 },
+        "capabilities": { "type": "object" },
+        "allergies": { "type": "array" },
+        "dietaryPreferences": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "displayName", "role"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Trusted admin identifier mapping for zero-trust RBAC.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "grantedAt": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Food inventory item for household kitchens with FoodKeeper shelf-life estimations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string" },
+        "quantity": { "type": "string", "maxLength": 60 },
+        "storage": { "type": "string", "enum": ["fridge", "freezer", "pantry"] },
+        "packageState": { "type": "string", "enum": ["opened", "sealed"] },
+        "dateAdded": { "type": "string" },
+        "expirationDate": { "type": "string" },
+        "isEstimated": { "type": "boolean" },
+        "confidence": { "type": "number" },
+        "actionStatus": { "type": "string", "enum": ["use-today", "use-soon", "stable", "donate-eligible"] },
+        "nextStepText": { "type": "string", "maxLength": 200 }
+      },
+      "required": ["userId", "name", "storage", "packageState", "actionStatus", "nextStepText"]
+    },
+    "SurplusLot": {
+      "title": "SurplusLot",
+      "description": "Commercial store surplus lot forecasted before spoilage.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "storeName": { "type": "string", "maxLength": 150 },
+        "storeAddress": { "type": "string", "maxLength": 200 },
+        "department": { "type": "string" },
+        "itemsSummary": { "type": "string", "maxLength": 500 },
+        "totalPounds": { "type": "number" },
+        "estimatedValue": { "type": "number" },
+        "spoilageWindowHours": { "type": "number" },
+        "requiresColdStorage": { "type": "boolean" },
+        "requiresSealedPackaging": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["forecasted", "offered", "matched", "dispatched", "completed"] },
+        "forecastConfidence": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["storeId", "storeName", "department", "itemsSummary", "totalPounds", "requiresColdStorage", "status"]
+    },
+    "SurplusClaimRequest": {
+      "title": "SurplusClaimRequest",
+      "description": "Food bank claim request for a store surplus lot with driver logistics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "lotId": { "type": "string" },
+        "storeId": { "type": "string" },
+        "storeName": { "type": "string", "maxLength": 150 },
+        "storeAddress": { "type": "string", "maxLength": 200 },
+        "department": { "type": "string" },
+        "itemsSummary": { "type": "string", "maxLength": 500 },
+        "foodBankId": { "type": "string" },
+        "foodBankName": { "type": "string", "maxLength": 150 },
+        "requestedPounds": { "type": "number" },
+        "proposedPickupTime": { "type": "string", "maxLength": 100 },
+        "requiresColdStorage": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "in_transit", "delivered"] },
+        "requestedAt": { "type": "string" },
+        "driverEtaMinutes": { "type": "number" },
+        "rejectionReason": { "type": "string", "maxLength": 300 },
+        "driverNotes": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["lotId", "storeName", "foodBankId", "foodBankName", "requestedPounds", "status"]
+    },
+    "CommunityImpact": {
+      "title": "CommunityImpact",
+      "description": "Aggregated community food diversion, meals served, and savings metrics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "totalPoundsDiverted": { "type": "number" },
+        "totalMealsRescued": { "type": "number" },
+        "householdSavingsDollars": { "type": "number" },
+        "lastUpdated": { "type": "string" }
+      },
+      "required": ["totalPoundsDiverted", "totalMealsRescued", "householdSavingsDollars"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles and role access."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Admin identity whitelist for zero-trust platform governance."
+    },
+    "/inventory/{itemId}": {
+      "schema": { "$ref": "#/entities/InventoryItem" },
+      "description": "Household fridge, freezer, and pantry items."
+    },
+    "/surplus_lots/{lotId}": {
+      "schema": { "$ref": "#/entities/SurplusLot" },
+      "description": "Commercial store surplus lots."
+    },
+    "/claim_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/SurplusClaimRequest" },
+      "description": "Food bank requests placed on surplus lots."
+    },
+    "/community_impact/{metricId}": {
+      "schema": { "$ref": "#/entities/CommunityImpact" },
+      "description": "Aggregated public impact counters."
+    }
+  }
+}
