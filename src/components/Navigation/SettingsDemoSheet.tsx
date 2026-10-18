@@ -14,7 +14,11 @@ import {
   RefreshCw,
   ChevronRight,
   Check,
+  Volume2,
+  VolumeX,
+  Download,
 } from 'lucide-react';
+import { sounds } from '../../utils/audioEffects';
 
 export interface SettingsDemoSheetProps {
   isOpen: boolean;
@@ -44,6 +48,8 @@ export const SettingsDemoSheet: React.FC<SettingsDemoSheetProps> = ({
   onToggleTheme,
 }) => {
   const { region, setRegion, config, allRegions } = useRegion();
+  const [soundEnabled, setSoundEnabled] = React.useState(true);
+  const [showInstallHelp, setShowInstallHelp] = React.useState(false);
 
   return (
     <Sheet
@@ -252,6 +258,70 @@ export const SettingsDemoSheet: React.FC<SettingsDemoSheetProps> = ({
               >
                 Switch to {theme === 'dark' ? 'Light' : 'Dark'}
               </button>
+            </div>
+
+            {/* UI Audio Feedback row */}
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] flex items-center justify-center">
+                  {soundEnabled ? (
+                    <Volume2 className="w-5 h-5 text-[#1F7A4D] dark:text-[#34C77B]" strokeWidth={1.5} />
+                  ) : (
+                    <VolumeX className="w-5 h-5 text-[#86868B]" strokeWidth={1.5} />
+                  )}
+                </div>
+                <div>
+                  <div className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                    UI Audio Feedback
+                  </div>
+                  <div className="text-[12px] text-[#6E6E73] dark:text-[#86868B]">
+                    {soundEnabled ? 'Synthesized chimes active' : 'Muted'}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !soundEnabled;
+                  setSoundEnabled(next);
+                  sounds.setMuted(!next);
+                  if (next) sounds.playSuccessChime();
+                }}
+                className="apple-pill-btn px-4 py-1.5 rounded-full bg-white dark:bg-[#2C2C2E] border border-black/[0.06] dark:border-white/[0.12] text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] shadow-sm cursor-pointer"
+              >
+                {soundEnabled ? 'Mute' : 'Enable'}
+              </button>
+            </div>
+
+            {/* PWA Install row */}
+            <div className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] flex items-center justify-center">
+                    <Download className="w-5 h-5 text-[#1F7A4D] dark:text-[#34C77B]" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                      Install App to Device
+                    </div>
+                    <div className="text-[12px] text-[#6E6E73] dark:text-[#86868B]">
+                      PWA home-screen launcher &amp; offline cache
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowInstallHelp(!showInstallHelp)}
+                  className="apple-pill-btn px-4 py-1.5 rounded-full bg-[#1F7A4D] text-white text-[13px] font-medium shadow-sm hover:bg-[#18603C] cursor-pointer"
+                >
+                  Install Guide
+                </button>
+              </div>
+
+              {showInstallHelp && (
+                <div className="mt-2 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] text-[12px] text-[#6E6E73] dark:text-[#86868B] space-y-1">
+                  <div><strong>iOS Safari:</strong> Tap the Share button (⎋), then scroll down and tap &quot;Add to Home Screen&quot;.</div>
+                  <div><strong>Chrome / Android / Desktop:</strong> Click the Install icon in the browser address bar or menu (⋮) $\rightarrow$ &quot;Install NourishLoop&quot;.</div>
+                </div>
+              )}
             </div>
 
             {/* Tour row */}
